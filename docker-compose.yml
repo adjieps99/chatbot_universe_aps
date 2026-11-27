@@ -1,0 +1,67 @@
+services:
+  kresna:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kresna-app
+    ports:
+      - "127.0.0.1:${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      BIND_HOST: "0.0.0.0"
+      LOCAL_SINGLE_USER_MODE: "true"
+      ENABLE_MULTI_USER_AUTH: "false"
+      ALLOW_NON_LOCAL_ADMIN: "false"
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      QDRANT_URL: "http://qdrant:6333"
+      QDRANT_COLLECTION: "${QDRANT_COLLECTION:-kresna_knowledge}"
+      KRESNA_DB_PATH: "/app/data/kresna.db"
+      VEHICLE_INTELLIGENCE_ENABLED: "${VEHICLE_INTELLIGENCE_ENABLED:-true}"
+      MAP_TILE_URL: "${MAP_TILE_URL:-}"
+      OSRM_BASE_URL: "${OSRM_BASE_URL:-}"
+    volumes:
+      - kresna_data:/app/data
+    depends_on:
+      ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: kresna-ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: kresna-qdrant
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  kresna_data:
+  ollama_data:
+  qdrant_data:

@@ -1,0 +1,1195 @@
+# KRESNA — VEHICLE INTELLIGENCE CHATBOT MVP
+## Product Expansion, Agentic Runtime Integration & UI/UX Transformation
+
+You are acting as a Principal AI Engineer, Senior Full-Stack Architect, Product Designer, and Engineering Lead.
+
+Your assignment is to extend the EXISTING KRESNA application by introducing a new chatbot type called **Vehicle Intelligence**.
+
+This is a product expansion, NOT a new standalone application and NOT a replacement of the existing chatbot architecture.
+
+You must inspect the current source code, understand the existing implementation, and implement the new capability directly into the current project.
+
+Do not start from scratch.
+
+---
+
+# 1. PRODUCT VISION
+
+KRESNA is an open-source, low-code AI chatbot factory designed to allow anyone, including non-technical users and developers, to create intelligent conversational assistants.
+
+KRESNA currently supports knowledge-based chatbots, including FAQ and document-grounded conversations.
+
+We are expanding KRESNA with a second chatbot type:
+
+**VEHICLE INTELLIGENCE CHATBOT**
+
+This chatbot enables users to interact naturally with vehicle and fleet operational data.
+
+Example questions:
+
+- Where is vehicle B9811UEW right now?
+- Which vehicles are currently moving?
+- Show vehicles that have been idle for more than two hours.
+- How many vehicles are currently active?
+- Find vehicles within 5 km of this location.
+- What is the latest position of my vehicle?
+- Show yesterday's trip history.
+- Which vehicles have experienced overspeed events?
+- Is the GPS device still transmitting data?
+- Compare today's mileage with yesterday's.
+- Which vehicles have not reported their position recently?
+
+The chatbot must understand conversational context, retrieve the appropriate operational data, interpret the results, and respond naturally.
+
+The user must feel like they are talking to an intelligent fleet operations assistant, not interacting with a rigid command interface.
+
+## Critical product principle
+
+KRESNA must have ONE centralized conversational intelligence engine.
+
+FAQ and Vehicle Intelligence are different chatbot capabilities, not separate conversational engines.
+
+Do not create a second agent runtime, separate memory system, or independent conversation framework for Vehicle Intelligence.
+
+---
+
+# 2. NON-NEGOTIABLE: PRESERVE THE EXISTING CONVERSATION ENGINE
+
+This is the most important requirement.
+
+The existing KRESNA conversational experience has improved significantly and must remain intact.
+
+Preserve:
+
+- Existing LLM gateway.
+- Existing Gemini integration.
+- Workspace BYOK model configuration.
+- Existing conversation history.
+- Existing contextual memory.
+- Existing natural language understanding.
+- Existing multi-turn reasoning.
+- Existing follow-up behavior.
+- Existing contextual clarification.
+- Existing error handling and retry mechanisms.
+- Existing playground.
+- Existing conversation persistence.
+- Existing execution inspector.
+- Existing feedback mechanism.
+
+The new Vehicle Intelligence chatbot must use exactly the same conversational core.
+
+### Required agent behavior
+
+When a user sends a message:
+
+1. Understand the user's actual objective.
+2. Consider the entire relevant conversation history.
+3. Identify whether the user is continuing a previous task or starting a new one.
+4. Determine whether knowledge retrieval or operational data retrieval is required.
+5. Dynamically select the appropriate tools.
+6. Execute tools through the backend.
+7. Observe actual results.
+8. Continue reasoning when additional information is necessary.
+9. Deliver a natural, contextual, evidence-based response.
+
+Example:
+
+User: Where is B9811UEW?
+
+Agent retrieves the vehicle's latest position.
+
+User: How long has it been there?
+
+The agent must understand that "it" refers to B9811UEW and retrieve the relevant historical position information.
+
+User: Show me other vehicles nearby.
+
+The agent must reuse the previous location as the reference point.
+
+Do not force users to repeat vehicle identifiers.
+
+Do not introduce mandatory diagnostic turns.
+
+Do not use rigid regex-based conversational flows as the primary reasoning mechanism.
+
+Do not create a separate vehicle-specific conversational state machine.
+
+The LLM remains the primary reasoning and planning engine. Backend code remains responsible for authorization, validation, tool execution, and data integrity.
+
+---
+
+# 3. CHATBOT TYPE ARCHITECTURE
+
+Update the existing chatbot creation system.
+
+Users must be able to select between:
+
+### Type A — Knowledge / FAQ Chatbot
+
+Preserve the existing functionality.
+
+Supported knowledge sources include:
+
+- Excel
+- CSV
+- PDF
+- DOCX
+- TXT
+- Websites
+- URLs
+- Future SharePoint connectors
+
+### Type B — Vehicle Intelligence Chatbot
+
+A conversational assistant powered by operational vehicle data.
+
+Supported capabilities:
+
+- Vehicle tracking.
+- Fleet monitoring.
+- Vehicle status analysis.
+- Trip history.
+- Mileage analytics.
+- Geospatial queries.
+- Vehicle event analysis.
+- Device health monitoring.
+- ETA and route information.
+
+Design the architecture so future chatbot types can be added without rewriting the conversational engine.
+
+Examples of future chatbot types:
+
+- Financial Intelligence.
+- HR Intelligence.
+- Inventory Intelligence.
+- Customer Support Intelligence.
+- Operational Intelligence.
+
+Use a modular capability registration system.
+
+---
+
+# 4. VEHICLE DATA PROVIDER ARCHITECTURE
+
+Build a provider-agnostic architecture.
+
+Never tightly couple the Vehicle Intelligence agent to a single GPS provider.
+
+Create a standardized Vehicle Provider Interface.
+
+Suggested interface:
+
+```typescript
+interface VehicleProvider {
+  testConnection(): Promise<ConnectionResult>;
+
+  listVehicles(
+    filters?: VehicleFilters
+  ): Promise<Vehicle[]>;
+
+  getVehicle(
+    vehicleId: string
+  ): Promise<Vehicle | null>;
+
+  getVehiclePosition(
+    vehicleId: string
+  ): Promise<VehiclePosition | null>;
+
+  getFleetSummary(
+    filters?: FleetFilters
+  ): Promise<FleetSummary>;
+
+  getTripHistory(
+    vehicleId: string,
+    range: DateRange
+  ): Promise<Trip[]>;
+
+  getVehicleEvents(
+    vehicleId: string,
+    range?: DateRange
+  ): Promise<VehicleEvent[]>;
+
+  getDeviceHealth(
+    vehicleId: string
+  ): Promise<DeviceHealth | null>;
+
+  findNearbyVehicles(
+    coordinates: Coordinates,
+    radiusKm: number
+  ): Promise<Vehicle[]>;
+}
+```
+
+Adjust this interface according to actual provider capabilities.
+
+Use capability discovery so the agent knows which operations are available for each provider.
+
+## Provider 1 — Built-in Demo Simulator
+
+This is the default provider for MVP.
+
+Users must be able to try Vehicle Intelligence immediately without entering API keys or connecting external services.
+
+Implement:
+
+- At least 20 fictional vehicles.
+- Realistic fictional license plates.
+- Fleet groups.
+- Latitude and longitude.
+- Speed.
+- Ignition state.
+- Moving, idle, stopped, and offline statuses.
+- Last update timestamps.
+- Historical positions.
+- Sample trips.
+- Sample events.
+- Optional device health information.
+
+Provide deterministic sample data and a controlled simulation mode.
+
+Clearly label simulated data.
+
+Never present simulated information as real-world vehicle telemetry.
+
+## Provider 2 — Traccar
+
+Integrate Traccar as the first real open-source GPS tracking provider.
+
+Official resources:
+
+https://github.com/traccar/traccar
+
+https://www.traccar.org/traccar-api/
+
+Capabilities:
+
+- Device synchronization.
+- Vehicle position.
+- Device status.
+- Speed.
+- Ignition where supported by device attributes.
+- Position history.
+- Events.
+- Trips.
+- Geofences.
+- Device information.
+
+Requirements:
+
+- Support user-provided Traccar server URL.
+- Support authentication credentials.
+- Test connection.
+- Synchronize devices.
+- Map device identifiers to vehicle identifiers.
+- Support configurable synchronization intervals.
+- Respect API pagination and provider limits.
+- Handle unavailable telemetry fields transparently.
+
+Use the official API documentation to determine actual supported endpoints.
+
+## Provider 3 — Generic REST API Connector
+
+This is essential for KRESNA's commercial flexibility.
+
+Users should be able to connect their own vehicle management APIs without modifying KRESNA source code.
+
+Support:
+
+- Base URL.
+- Authentication.
+- API Key.
+- Bearer Token.
+- Basic Authentication.
+- OAuth2 where practical.
+- Custom headers.
+- Endpoint configuration.
+- HTTP methods.
+- Query parameters.
+- JSON request bodies.
+- Response field mapping.
+- Pagination.
+- Timeout.
+- Retry configuration.
+
+Provide:
+
+1. Manual endpoint configuration.
+2. OpenAPI / Swagger import where possible.
+3. Field mapping interface.
+4. Test API connection.
+5. Test individual endpoints.
+6. Preview returned JSON.
+7. Map response fields to KRESNA's canonical vehicle schema.
+
+Do not allow the LLM to execute arbitrary URLs or unrestricted HTTP requests.
+
+All external API requests must pass through the registered connector backend.
+
+## Provider 4 — Skyward Legacy Connector
+
+Skyward is an existing vehicle intelligence implementation.
+
+Its existing functionality must remain available as an optional integration path.
+
+Do not remove, overwrite, or silently discard its source code.
+
+Preserve the legacy integration separately from the public KRESNA core.
+
+Prepare an adapter interface for:
+
+- Azure Cosmos DB.
+- Azure Blob Storage.
+- SQL Server.
+- HERE Maps API.
+- Fleet group hierarchy.
+- Existing vehicle business definitions.
+- Existing telemetry and analytics logic.
+
+Where the actual Skyward implementation is not present in the current project, create a clearly marked adapter extension point and implementation documentation.
+
+Do not invent working integrations or report them as complete.
+
+Keep proprietary source code, company data, and credentials outside the public open-source distribution unless explicit redistribution permission exists.
+
+---
+
+# 5. CANONICAL VEHICLE DATA MODEL
+
+Create a standardized vehicle data model.
+
+Suggested fields:
+
+```typescript
+interface Vehicle {
+  id: string;
+  name?: string;
+  licensePlate: string;
+  fleetGroup?: string;
+
+  position?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  };
+
+  telemetry?: {
+    speed?: number;
+    ignition?: boolean;
+    odometer?: number;
+    fuelLevel?: number;
+    batteryVoltage?: number;
+  };
+
+  status:
+    | "moving"
+    | "idle"
+    | "stopped"
+    | "offline"
+    | "unknown";
+
+  lastUpdated?: string;
+
+  provider: string;
+
+  availableCapabilities: string[];
+}
+```
+
+Also create standardized structures for:
+
+- VehiclePosition.
+- Trip.
+- VehicleEvent.
+- DeviceHealth.
+- FleetSummary.
+- FleetGroup.
+- DateRange.
+- Coordinates.
+- ProviderCapabilities.
+
+Important:
+
+All telemetry fields must be optional when the provider does not supply them.
+
+Do not manufacture missing values.
+
+Every operational response must preserve:
+
+- Source provider.
+- Data timestamp.
+- Retrieval timestamp.
+- Data freshness.
+- Data availability.
+
+Distinguish between the latest reported position and the vehicle's actual current position.
+
+---
+
+# 6. VEHICLE INTELLIGENCE TOOL REGISTRY
+
+Register reusable backend tools that the LLM can dynamically select.
+
+Implement the following MVP tools:
+
+| Tool | Purpose |
+|---|---|
+| search_fleet | Search vehicles and fleet groups |
+| get_vehicle_detail | Retrieve vehicle information |
+| get_vehicle_position | Retrieve latest position |
+| get_vehicle_status | Retrieve operational status |
+| get_fleet_summary | Summarize fleet status |
+| get_vehicle_trip_history | Retrieve trip history |
+| get_vehicle_events | Retrieve operational events |
+| get_device_health | Retrieve device telemetry |
+| get_daily_mileage | Calculate daily mileage |
+| get_average_mileage | Calculate average mileage |
+| get_max_speed | Retrieve maximum recorded speed |
+| get_silent_units | Identify vehicles with stale updates |
+| get_oldest_update | Find oldest reported position |
+| get_fleet_unit_count | Count vehicles |
+| find_nearby_vehicles | Search within a geographic radius |
+| find_vehicles_by_coordinates | Find vehicles around coordinates |
+| get_vehicle_eta | Calculate ETA when routing data is available |
+
+Do not implement tools that simply return fabricated values.
+
+If a provider does not support an operation, return a structured capability-unavailable result.
+
+Use typed input and output schemas.
+
+Implement:
+
+- Input validation.
+- Authorization.
+- Tool execution timeouts.
+- Idempotency where applicable.
+- Structured error handling.
+- Execution logging.
+- Retry policies for recoverable failures.
+
+All vehicle operations in MVP must be READ-ONLY.
+
+Do not implement vehicle control commands or remote actions.
+
+---
+
+# 7. MAP AND GEOLOCATION EXPERIENCE
+
+Use open-source technologies.
+
+## MapLibre GL JS
+
+https://github.com/maplibre/maplibre-gl-js
+
+Use it for:
+
+- Interactive maps.
+- Vehicle markers.
+- Marker clustering.
+- Vehicle status indicators.
+- Vehicle detail popups.
+- Selected vehicle highlighting.
+- Fleet visualization.
+- Route polylines.
+
+## OSRM
+
+https://github.com/Project-OSRM/osrm-backend
+
+Use it for:
+
+- Route calculation.
+- Distance estimation.
+- Travel duration.
+- Nearest road.
+- Route matching where appropriate.
+
+OSRM should be optional in the MVP.
+
+Use a configurable map tile provider.
+
+Provide proper OpenStreetMap attribution when applicable.
+
+Do not rely on public tile servers as unrestricted production infrastructure.
+
+Map data and routing results must be clearly distinguished from live vehicle telemetry.
+
+---
+
+# 8. IMPORTANT UI/UX REDESIGN
+
+You must update the EXISTING KRESNA UI/UX.
+
+Do not build a separate application or an isolated vehicle dashboard.
+
+The new feature must feel like a natural extension of the existing product.
+
+Design for both non-technical business users and developers.
+
+Use progressive disclosure:
+
+- Simple Mode for ordinary users.
+- Developer Mode for advanced integrations.
+
+## A. Chatbot Creation Journey
+
+Redesign the existing chatbot creation journey.
+
+Step 1 — Choose Chatbot Type
+
+Present two clear options:
+
+- Knowledge / FAQ Chatbot.
+- Vehicle Intelligence Chatbot.
+
+Explain what each chatbot does using simple language.
+
+Step 2 — Basic Information
+
+- Chatbot name.
+- Description.
+- Industry.
+- Default language.
+- Assistant personality.
+
+Step 3 — Choose Data Source
+
+For Vehicle Intelligence:
+
+- Demo Simulator.
+- Traccar.
+- Generic REST API.
+- Skyward Legacy.
+
+Show which providers require credentials.
+
+Step 4 — Connect Data Source
+
+Provide provider-specific configuration forms.
+
+Include:
+
+- Credential fields.
+- Connection status.
+- Test Connection button.
+- Error explanation.
+- Sample data preview.
+
+Never expose stored secrets.
+
+Step 5 — Configure Vehicle Mapping
+
+Allow users to map:
+
+- Vehicle identifier.
+- License plate.
+- Latitude.
+- Longitude.
+- Speed.
+- Ignition.
+- Odometer.
+- Timestamp.
+- Fleet group.
+
+Automatically suggest mappings from sample JSON responses where possible.
+
+Users must be able to correct mappings.
+
+Step 6 — Configure Access and Capabilities
+
+Allow users to select:
+
+- Accessible fleet groups.
+- Available vehicle information.
+- Historical data access.
+- Nearby vehicle searches.
+- Device health access.
+
+The backend must enforce these permissions.
+
+Step 7 — Preview and Test
+
+Provide a working chat playground.
+
+Users should be able to ask actual questions against the configured provider.
+
+Step 8 — Publish
+
+Generate:
+
+- Chatbot endpoint.
+- Web embed snippet.
+- Installation instructions.
+- API usage documentation.
+
+Preserve existing publishing behavior where possible.
+
+## B. Vehicle Intelligence Playground
+
+This is a major UX priority.
+
+Create a polished, responsive conversational workspace.
+
+Desktop layout:
+
+- Main conversation panel.
+- Contextual vehicle map.
+- Optional execution inspector.
+- Vehicle result cards.
+
+Mobile layout:
+
+- Conversation-first experience.
+- Maps and vehicle details accessible through contextual panels.
+- No horizontal overflow.
+
+The map should appear when relevant, not permanently occupy the entire screen.
+
+Example:
+
+User:
+"Show vehicles currently moving in Jakarta."
+
+Assistant:
+
+"I found 12 moving vehicles in your authorized fleet."
+
+Render:
+
+- Vehicle count.
+- Moving/idle/stopped summary.
+- Interactive map.
+- Vehicle list.
+- Last update timestamps.
+
+When the user selects a vehicle, show its detail panel.
+
+The user must be able to continue the same conversation afterward.
+
+## C. Contextual UI Rendering
+
+The agent should be able to return structured UI components when useful.
+
+Examples:
+
+- VehicleCard.
+- FleetSummaryCard.
+- VehicleMap.
+- TripHistoryTable.
+- VehicleEventList.
+- DeviceHealthCard.
+- ETAResult.
+
+These components must be driven by actual tool results.
+
+Do not force every response into a dashboard.
+
+Ordinary questions should still receive natural conversational text.
+
+## D. UI Design Principles
+
+Use the existing KRESNA visual identity.
+
+Improve:
+
+- Navigation.
+- Information hierarchy.
+- Responsive behavior.
+- Empty states.
+- Loading states.
+- Error states.
+- Onboarding.
+- Configuration clarity.
+- Integration status visibility.
+- Playground usability.
+
+The interface should look like a polished commercial SaaS product.
+
+Avoid unnecessary configuration screens and technical terminology for ordinary users.
+
+Do not introduce decorative controls that do not work.
+
+---
+
+# 9. CONVERSATIONAL EXPERIENCE EVALUATION
+
+The following scenarios are mandatory.
+
+### Scenario 1 — Direct vehicle lookup
+
+User:
+"Where is B9811UEW?"
+
+Expected:
+Agent retrieves actual position and provides the latest timestamp.
+
+### Scenario 2 — Contextual follow-up
+
+User:
+"How long has it been there?"
+
+Expected:
+Agent understands the previous vehicle reference and retrieves history.
+
+### Scenario 3 — Contextual nearby search
+
+User:
+"Find other vehicles nearby."
+
+Expected:
+Agent reuses the previous location.
+
+If radius is missing and materially necessary, ask one concise clarification.
+
+### Scenario 4 — Ambiguous vehicle reference
+
+User:
+"Where is my vehicle?"
+
+Expected:
+Ask for a license plate or another unique vehicle identifier.
+
+### Scenario 5 — Topic switching
+
+User:
+"How does the fleet GPS work?"
+
+Expected:
+Answer using authorized knowledge when available.
+
+Then:
+"Show me B9811UEW."
+
+Expected:
+Switch naturally to Vehicle Intelligence without resetting the conversation.
+
+### Scenario 6 — Stale telemetry
+
+If the latest position is old:
+
+Clearly communicate that the data is stale.
+
+Never claim the vehicle is currently at that position.
+
+### Scenario 7 — Missing provider capability
+
+If battery voltage is unavailable:
+
+Explain that the connected device does not currently provide that information.
+
+Do not invent a value.
+
+### Scenario 8 — Provider failure
+
+If the API times out:
+
+Explain that the live information could not be retrieved.
+
+Never generate a fabricated successful result.
+
+### Scenario 9 — Multiple vehicle comparison
+
+User:
+"Compare the mileage of these three vehicles."
+
+Expected:
+Resolve all three identifiers and retrieve comparable data.
+
+### Scenario 10 — Frustrated user
+
+User:
+"Why can't you find my vehicle? I already gave you the number."
+
+Expected:
+Understand the frustration, preserve the identifier, explain the actual problem, and continue helping.
+
+Do not restart with a generic introduction.
+
+---
+
+# 10. SECURITY AND DATA PROTECTION
+
+Implement minimum production-minded safeguards from the beginning.
+
+Requirements:
+
+- Encrypt credentials at rest using the existing encryption implementation.
+- Never expose API keys to the browser.
+- Never pass credentials into LLM prompts.
+- Never log tokens or passwords.
+- Validate provider URLs.
+- Prevent SSRF.
+- Restrict external network access to registered connectors.
+- Enforce workspace and fleet authorization.
+- Implement API timeouts.
+- Implement rate limiting.
+- Audit tool execution.
+- Restrict all MVP vehicle tools to read-only operations.
+
+Use the existing KRESNA security infrastructure wherever possible.
+
+Do not weaken existing security to simplify implementation.
+
+For this MVP, keep the current demo workspace/local development experience.
+
+Do not introduce mandatory user registration or login.
+
+Preserve authentication-related code for future use if necessary, but do not block local MVP testing with a registration requirement.
+
+---
+
+# 11. MONITORING AND ANALYTICS
+
+Extend the existing Analytics and Execution Inspector.
+
+Add Vehicle Intelligence metrics:
+
+- Total vehicle queries.
+- Successful tool executions.
+- Failed tool executions.
+- Average provider latency.
+- Data freshness.
+- Provider availability.
+- Vehicle lookup volume.
+- Fleet analytics usage.
+- Map rendering activity.
+- LLM token usage.
+- Estimated model cost.
+
+Provide a provider health page.
+
+Show:
+
+- Connection status.
+- Last successful synchronization.
+- Last API error.
+- Number of synchronized vehicles.
+- Available capabilities.
+- Data freshness.
+
+Distinguish provider latency from LLM inference latency.
+
+---
+
+# 12. TECHNICAL ARCHITECTURE AND IMPLEMENTATION RULES
+
+Before coding:
+
+1. Inspect the complete existing repository.
+2. Identify the actual application framework.
+3. Inspect database schema and migrations.
+4. Inspect existing chatbot creation flow.
+5. Inspect the existing Gemini gateway.
+6. Inspect conversation context and memory.
+7. Inspect tool registry.
+8. Inspect playground and analytics.
+9. Identify existing reusable components.
+10. Document the implementation plan.
+
+Do not assume the previous project description perfectly matches the current source.
+
+Implement within the existing architecture.
+
+Do not migrate the application to another framework.
+
+Do not replace SQLite for the MVP.
+
+Do not introduce Google Cloud SQL, paid Google Cloud services, or unnecessary managed infrastructure.
+
+The application must remain self-hostable.
+
+Use Docker Compose for local deployment.
+
+Suggested modular structure:
+
+```text
+src/
+  shared/
+    vehicle-types/
+    vehicle-schemas/
+
+  server/
+    vehicle/
+      providers/
+        simulator/
+        traccar/
+        generic-rest/
+        skyward-legacy/
+      adapters/
+      registry/
+      services/
+      tools/
+      analytics/
+
+  client/
+    components/
+      chatbot-types/
+      vehicle/
+        VehicleMap/
+        VehicleCard/
+        FleetSummary/
+        TripHistory/
+        ProviderSetup/
+        VehiclePlayground/
+
+  database/
+    migrations/
+```
+
+Adapt this structure to the actual repository instead of blindly creating duplicate abstractions.
+
+## Database requirements
+
+Add appropriate persistent entities for:
+
+- Vehicle provider configuration.
+- Provider credentials or encrypted secret references.
+- Vehicle field mappings.
+- Provider capabilities.
+- Fleet access rules.
+- Vehicle synchronization state.
+- Tool execution history.
+
+Use the existing persistence conventions.
+
+Avoid unnecessary database duplication.
+
+## Dependency requirements
+
+Prefer permissively licensed open-source dependencies.
+
+Before adding a dependency:
+
+- Verify its current license.
+- Verify maintenance status.
+- Verify compatibility.
+- Avoid unnecessary large packages.
+- Record attribution where required.
+
+Initial stack:
+
+- Traccar — GPS tracking.
+- MapLibre GL JS — map visualization.
+- OSRM — routing, optional.
+- Existing SQLite — persistence.
+- Existing Gemini gateway — conversational intelligence.
+
+Do not add ThingsBoard as a mandatory dependency.
+
+---
+
+# 13. FEATURE FLAGS AND BACKWARD COMPATIBILITY
+
+Introduce a feature flag:
+
+```text
+VEHICLE_INTELLIGENCE_ENABLED=true
+```
+
+The existing FAQ chatbot must continue functioning when Vehicle Intelligence is disabled.
+
+The existing FAQ creation wizard must not regress.
+
+The existing playground must remain functional.
+
+The existing BYOK Gemini configuration must continue working.
+
+The existing conversation persistence must remain compatible.
+
+Do not change the existing default chatbot type.
+
+Use versioned database migrations.
+
+Do not reset existing databases or delete demo workspace data.
+
+---
+
+# 14. AUTOMATED TESTING AND ACCEPTANCE CRITERIA
+
+Implement tests for:
+
+### Existing functionality
+
+- FAQ chatbot creation.
+- Knowledge CRUD.
+- Existing Gemini inference.
+- Existing conversational follow-ups.
+- Existing conversation persistence.
+- Existing analytics.
+- Existing BYOK configuration.
+
+### Vehicle functionality
+
+- Simulator provider.
+- Traccar connection.
+- Generic REST mapping.
+- Vehicle lookup.
+- Vehicle position.
+- Fleet summary.
+- Trip history.
+- Nearby vehicle calculation.
+- Stale telemetry.
+- Provider timeout.
+- Missing capabilities.
+- Credential encryption.
+- Fleet access restrictions.
+
+### Agent behavior
+
+- Contextual follow-up.
+- Topic switching.
+- Tool selection.
+- Multi-tool execution.
+- Tool failure recovery.
+- Unsupported data handling.
+- No fabricated operational results.
+
+Create an evaluation dataset with at least 40 realistic conversational cases.
+
+Compare FAQ regression results before and after the new implementation.
+
+Do not claim tests pass unless they have actually been executed.
+
+---
+
+# 15. DEPLOYMENT AND DOCUMENTATION
+
+Provide a working Docker Compose setup.
+
+The default MVP must start without requiring:
+
+- Azure subscription.
+- Cosmos DB.
+- HERE API key.
+- Traccar credentials.
+- Production FMS access.
+
+Use the built-in simulator.
+
+The user may configure Gemini BYOK using the existing implementation.
+
+Provide a simple Windows PowerShell installation procedure.
+
+Ideally:
+
+```powershell
+docker compose up --build -d
+```
+
+The application must become accessible through the existing local application URL.
+
+Provide documentation:
+
+1. MVP installation.
+2. Vehicle chatbot setup.
+3. Simulator usage.
+4. Traccar integration.
+5. Generic REST API configuration.
+6. Credential configuration.
+7. Field mapping.
+8. Troubleshooting.
+9. Architecture overview.
+10. Skyward legacy integration guide.
+
+---
+
+# 16. EXECUTION INSTRUCTIONS
+
+Do not stop after producing a proposal.
+
+Work directly in the existing project.
+
+Execute in this order:
+
+**Stage 1 — Inspect**
+- Analyze current repository.
+- Identify existing architecture.
+- Identify possible implementation conflicts.
+- Report actual findings.
+
+**Stage 2 — Design**
+- Define canonical vehicle schema.
+- Define provider contract.
+- Define database changes.
+- Define conversational integration.
+- Define UI/UX journey.
+
+**Stage 3 — Implement Core**
+- Vehicle chatbot type.
+- Provider registry.
+- Simulator.
+- Vehicle tools.
+- Agent runtime integration.
+
+**Stage 4 — Implement Integrations**
+- Traccar.
+- Generic REST API.
+- Skyward legacy extension points.
+
+**Stage 5 — Implement UI/UX**
+- Chatbot type selection.
+- Setup wizard.
+- Provider configuration.
+- Vehicle playground.
+- Interactive map.
+- Analytics.
+
+**Stage 6 — Validate**
+- Run tests.
+- Run typecheck.
+- Run production build.
+- Test Docker Compose.
+- Verify FAQ backward compatibility.
+- Test actual simulator conversations.
+- Verify error handling.
+
+**Stage 7 — Handover**
+Provide:
+- Architecture changes.
+- Files created.
+- Files modified.
+- Database migrations.
+- Implemented capabilities.
+- UI/UX changes.
+- Test results.
+- Docker commands.
+- Known limitations.
+- Next development priorities.
+
+If a component cannot be completed, explicitly identify it as incomplete.
+
+Never substitute a mockup for a working backend integration.
+
+Never claim a connection is live without a successful connection test.
+
+---
+
+# 17. FINAL ACCEPTANCE PRINCIPLE
+
+The finished KRESNA product must allow a non-technical user to:
+
+1. Open KRESNA.
+2. Create a chatbot.
+3. Select Vehicle Intelligence.
+4. Choose Demo Simulator or connect a GPS provider.
+5. Configure the connection through a guided interface.
+6. Test the connection.
+7. Open the playground.
+8. Ask natural questions about vehicles.
+9. Receive contextual, evidence-based responses.
+10. See interactive maps and vehicle information.
+11. Publish the chatbot.
+
+The experience must be simple enough for ordinary business users while remaining customizable for developers.
+
+Most importantly:
+
+**The Vehicle Intelligence capability must inherit the existing KRESNA conversational intelligence.**
+
+It must not become another rigid chatbot with predefined commands and scripted diagnostic turns.
+
+We are building one intelligent chatbot platform with multiple specialized capabilities.
+
+The product should feel like a natural AI conversation that can understand knowledge, retrieve operational data, analyze results, and help users complete their actual objectives.
+
+Build the MVP, validate it, and deliver the working implementation.
